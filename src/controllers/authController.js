@@ -1,7 +1,7 @@
 const prisma = require('../helper/prisma');
 const { hashValue, compareValue } = require('../helper/hash');
-const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../helper/jwt');
-const { registerSchema, loginSchema } = require('../validations/authValidation');
+const { generateToken, generateRefreshToken } = require('../helper/jwt');
+const { registerSchema, loginSchema, refreshTokenSchema } = require('../validations/authValidation');
 const jwt = require('jsonwebtoken');
 const { TokenType } = require('@prisma/client')
 
