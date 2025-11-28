@@ -41,4 +41,5 @@ enum TokenType {
   REFRESH
   RESET_PASSWORD
   OTP_RESET
+  OTP_CHANGE_EMAIL
 }

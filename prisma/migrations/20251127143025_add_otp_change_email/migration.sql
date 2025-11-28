@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `tokenauth` MODIFY `token_type` ENUM('REFRESH', 'RESET_PASSWORD', 'OTP_RESET', 'OTP_CHANGE_EMAIL') NOT NULL;

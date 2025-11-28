@@ -32,7 +32,18 @@ const sendOtpResetPasswordMail = async (to, otp) => {
    `;
     await sendMail(to, 'Reset Password', html);
 }
+const sendOtpChangeEmailMail = async (to, otp) => {
+    const html = `
+   <h3>Kode Verifikasi Perubahan Email</h3>
+   <p>Gunakan kode berikut untuk memverifikasi perubahan email Anda. Kode ini berlaku selama 10 menit.</p>
+   <h2>${otp}</h2>
+   <p>Kode ini berlaku selama 10 menit.</p>
+   <p>Jika Anda tidak meminta perubahan email, abaikan email ini.</p>
+   `;
+    await sendMail(to, 'Verifikasi Perubahan Email', html);
+}
 module.exports = {
     sendMail,
-    sendOtpResetPasswordMail
+    sendOtpResetPasswordMail,
+    sendOtpChangeEmailMail
 };

@@ -1,9 +1,11 @@
 const prisma = require('../helper/prisma');
 const { hashValue, compareValue } = require('../helper/hash');
 const { generateToken, generateRefreshToken } = require('../helper/jwt');
-const { registerSchema, loginSchema, refreshTokenSchema } = require('../validations/authValidation');
+const { registerSchema, loginSchema, refreshTokenSchema, requestEmailChangeSchema, verifyEmailChangeSchema } = require('../validations/authValidation');
 const jwt = require('jsonwebtoken');
+const { generateOtpCode } = require('../helper/otp');
 const { TokenType } = require('@prisma/client')
+const { sendOtpChangeEmailMail } = require('../helper/mail');
 
 const register = async (req, res) => {
     try {
@@ -174,6 +176,130 @@ const refreshToken = async (req, res) => {
     }
 }
 
+const changeEmail = async (req, res) => {
+    try {
+        const parsed = requestEmailChangeSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                message: 'Validasi gagal',
+                errors: parsed.error.issues.map((e) => e.message)
+            })
+        }
+        const { current_password, new_email } = parsed.data;
+        const userId = req.user.id;
+
+        if (new_email === req.user.email) {
+            return res.status(400).json({
+                message: 'Email baru tidak boleh sama dengan email saat ini'
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User tidak ditemukan'
+            });
+        }
+        const isPasswordValid = await compareValue(current_password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({
+                message: 'Password saat ini salah'
+            });
+        }
+        const emailUsed = await prisma.user.findUnique({
+            where: { email: new_email }
+        });
+        if (emailUsed) {
+            return res.status(400).json({
+                message: 'Email sudah digunakan oleh user lain'
+            });
+        }
+
+        const otp = generateOtpCode()
+        const hashedOtp = await hashValue(otp);
+        const expired = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+        await prisma.tokenAuth.create({
+            data: {
+                user_id: user.id,
+                token: hashedOtp,
+                token_type: TokenType.OTP_CHANGE_EMAIL,
+                expired_at: expired
+            }
+        })
+        await sendOtpChangeEmailMail(new_email, otp);
+
+        return res.status(200).json({
+            message: 'OTP untuk verifikasi perubahan email telah dikirim ke email baru'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
+}
+
+const verifyEmailChange = async (req, res) => {
+    try {
+        const parsed = verifyEmailChangeSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                message: 'Validasi gagal',
+                errors: parsed.error.issues.map((e) => e.message)
+            })
+        }
+        const { new_email, otp } = parsed.data;
+        const userId = req.user.id;
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User tidak ditemukan'
+            });
+        }
+        const otpRecord = await prisma.tokenAuth.findFirst({
+            where: {
+                user_id: user.id,
+                token_type: TokenType.OTP_CHANGE_EMAIL,
+                expired_at: { gt: new Date() }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+        if (!otpRecord) {
+            return res.status(400).json({
+                message: 'OTP tidak ditemukan atau sudah kadaluarsa'
+            });
+        }
+        const isOtpValid = await compareValue(otp, otpRecord.token);
+        if (!isOtpValid) {
+            return res.status(400).json({
+                message: 'OTP tidak valid'
+            });
+        }
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { email: new_email }
+        });
+        await prisma.tokenAuth.deleteMany({
+            where: {
+                user_id: user.id,
+                token_type: TokenType.OTP_CHANGE_EMAIL
+            }
+        });
+        return res.status(200).json({
+            message: 'Email berhasil diubah'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
+}
+
 const me = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -208,5 +334,7 @@ module.exports = {
     register,
     login,
     refreshToken,
+    changeEmail,
+    verifyEmailChange,
     me
 }

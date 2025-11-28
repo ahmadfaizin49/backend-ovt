@@ -21,8 +21,24 @@ const refreshTokenSchema = z.object({
     refresh_token: z.string().min(1, 'Refresh token wajib diisi')
 })
 
+const requestEmailChangeSchema = z.object({
+    current_password: z.string()
+        .min(1, 'Password saat ini wajib diisi'),
+    new_email: z.string()
+        .email('Email tidak valid')
+})
+
+const verifyEmailChangeSchema = z.object({
+    new_email: z.string()
+        .email('Email tidak valid'),
+    otp: z.string()
+        .length(6, 'OTP harus terdiri dari 6 digit')
+})
+
 module.exports = {
     registerSchema,
     loginSchema,
-    refreshTokenSchema
+    refreshTokenSchema,
+    requestEmailChangeSchema,
+    verifyEmailChangeSchema
 }   
