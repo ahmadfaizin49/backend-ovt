@@ -22,9 +22,11 @@ model User {
   phone_number String?  @db.VarChar(15)
   basic_salary Int      @default(0)
   password     String   @db.VarChar(255)
+  avatar       String?  @db.VarChar(255)
   created_at   DateTime @default(now())
 
   resetTokens TokenAuth[]
+  overtimes   overtime[]
 }
 
 model TokenAuth {
@@ -35,6 +37,23 @@ model TokenAuth {
   expired_at DateTime
   created_at DateTime  @default(now())
   user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model overtime {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  date         DateTime
+  status       status
+  hours        Int
+  total_amount Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+enum status {
+  NORMAL
+  HOLIDAY
 }
 
 enum TokenType {
