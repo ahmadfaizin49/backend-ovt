@@ -42,7 +42,7 @@ model TokenAuth {
 model overtime {
   id           Int      @id @default(autoincrement())
   user_id      Int
-  date         DateTime
+  date         DateTime @db.Date
   status       status
   hours        Int
   total_amount Int

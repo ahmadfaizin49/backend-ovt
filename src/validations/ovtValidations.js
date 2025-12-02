@@ -16,6 +16,12 @@ const ovtSchema = z.object({
         required_error: 'Jam lembur wajib diisi'
     }).nonnegative('Jam lembur tidak boleh negatif'),
 })
+
+const ovtUpdateSchema = ovtSchema.partial().extend({
+    hours: z.coerce.number().nonnegative().optional(),
+    status: ovtSchema.shape.status.optional(),
+})
 module.exports = {
-    ovtSchema
+    ovtSchema,
+    ovtUpdateSchema
 }
