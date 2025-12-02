@@ -128,7 +128,33 @@ const updateOvt = async (req, res) => {
         })
     }
 }
+
+const deleteOvt = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const existingOvt = await prisma.overtime.findUnique({
+            where: { id: Number(id) }
+        });
+        if (!existingOvt) {
+            return res.status(404).json({
+                message: 'Overtime not found'
+            });
+        }
+        await prisma.overtime.delete({
+            where: { id: Number(id) }
+        });
+        return res.status(200).json({
+            message: 'Overtime deleted successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
+}
 module.exports = {
     createOvt,
-    updateOvt
+    updateOvt,
+    deleteOvt
 }
