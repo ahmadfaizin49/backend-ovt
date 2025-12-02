@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, refreshToken, changeEmail, verifyEmailChange, me } = require('../controllers/authController');
+const { register,
+    login,
+    refreshToken,
+    changeEmail,
+    verifyEmailChange,
+    me,
+    updateProfile } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 //register route
@@ -19,6 +25,9 @@ router.post('/change-email', authMiddleware, changeEmail);
 
 //verify email change route
 router.post('/verify-email-change', authMiddleware, verifyEmailChange);
+
+//update profile route
+router.put('/update-profile', authMiddleware, updateProfile);
 
 
 

@@ -5,7 +5,7 @@ const registerSchema = z.object({
     user_name: z.string().min(3, 'Username minimal 3 karakter'),
     email: z.string().email('Email tidak valid'),
     phone_number: z.string().min(10, 'Nomor HP minimal 10 karakter').optional(),
-    basic_salary: z.number('Gaji pokok harus berupa angka').nonnegative('Gaji pokok tidak boleh negatif'),
+    basic_salary: z.coerce.number('Gaji pokok harus berupa angka').nonnegative('Gaji pokok tidak boleh negatif'),
     password: z.string()
         .min(6, 'Password minimal 6 karakter')
         .regex(/[A-Z]/, 'Password harus mengandung minimal satu huruf kapital')
@@ -35,10 +35,20 @@ const verifyEmailChangeSchema = z.object({
         .length(6, 'OTP harus terdiri dari 6 digit')
 })
 
+const updateProfileSchema = z.object({
+    full_name: z.string().min(3, 'Full name minimal 3 karakter'),
+    user_name: z.string().min(3, 'Username minimal 3 karakter'),
+    phone_number: z.string().min(10, 'Nomor HP minimal 10 karakter').optional(),
+    basic_salary: z.coerce.number('Gaji pokok harus berupa angka')
+        .nonnegative('Gaji pokok tidak boleh negatif'),
+
+})
+
 module.exports = {
     registerSchema,
     loginSchema,
     refreshTokenSchema,
     requestEmailChangeSchema,
-    verifyEmailChangeSchema
+    verifyEmailChangeSchema,
+    updateProfileSchema
 }   
