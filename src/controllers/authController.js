@@ -5,14 +5,12 @@ const { registerSchema,
     loginSchema,
     refreshTokenSchema,
     requestEmailChangeSchema,
-    verifyEmailChangeSchema,
-    updateProfileSchema } = require('../validations/authValidation');
+    verifyEmailChangeSchema, } = require('../validations/authValidation');
 const jwt = require('jsonwebtoken');
 const { generateOtpCode } = require('../helper/otp');
 const { TokenType } = require('@prisma/client')
 const { sendOtpChangeEmailMail } = require('../helper/mail');
-const { parse } = require('dotenv');
-const e = require('express');
+
 
 const register = async (req, res) => {
     try {
@@ -307,86 +305,10 @@ const verifyEmailChange = async (req, res) => {
     }
 }
 
-const me = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                full_name: true,
-                user_name: true,
-                email: true,
-                phone_number: true,
-                basic_salary: true
-            }
-        })
-        if (!user) {
-            return res.status(404).json({
-                message: 'User not found'
-            })
-        }
-        res.status(200).json({
-            message: 'User profile retrieved successfully',
-            data: user
-        })
-    } catch (error) {
-        res.status(500).json({
-            message: 'Internal server error',
-            error: error.message
-        })
-    }
-}
-
-const updateProfile = async (req, res) => {
-    try {
-        parsed = updateProfileSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(400).json({
-                message: 'Validasi gagal',
-                errors: parsed.error.issues.map((e) => e.message)
-            })
-        }
-        const data = parsed.data;
-        const userId = req.user.id;
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                user_name: data.user_name
-            }
-        });
-        if (existingUser && existingUser.id !== userId) {
-            return res.status(400).json({
-                message: 'Username sudah digunakan oleh user lain'
-            });
-        }
-
-        const upadatedUser = await prisma.user.update({
-            where: { id: userId },
-            data: {
-                full_name: data.full_name,
-                user_name: data.user_name,
-                phone_number: data.phone_number,
-                basic_salary: data.basic_salary
-            }
-        });
-        return res.status(200).json({
-            message: 'Profile updated successfully',
-            data: upadatedUser
-        })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: 'Internal server error',
-            error: error.message
-        })
-    }
-}
 module.exports = {
     register,
     login,
     refreshToken,
     changeEmail,
-    verifyEmailChange,
-    me,
-    updateProfile
+    verifyEmailChange
 }
