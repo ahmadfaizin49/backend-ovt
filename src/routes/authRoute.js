@@ -5,9 +5,9 @@ const { register,
     refreshToken,
     changeEmail,
     verifyEmailChange,
-    me,
-    updateProfile } = require('../controllers/authController');
+} = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { uploadAvatar } = require('../helper/multer');
 
 //register route
 router.post('/register', register);
@@ -17,17 +17,11 @@ router.post('/login', login);
 //refresh token route
 router.post('/refresh-token', refreshToken);
 
-//me route
-router.get('/me', authMiddleware, me);
-
 //change email route
 router.post('/change-email', authMiddleware, changeEmail);
 
 //verify email change route
 router.post('/verify-email-change', authMiddleware, verifyEmailChange);
-
-//update profile route
-router.put('/update-profile', authMiddleware, updateProfile);
 
 
 
