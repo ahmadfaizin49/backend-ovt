@@ -46,20 +46,25 @@ const updateProfile = async (req, res) => {
         }
         const data = parsed.data;
         const userId = req.user.id;
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                user_name: data.user_name
-            }
-        });
-        if (existingUser && existingUser.id !== userId) {
-            return res.status(400).json({
-                message: 'Username sudah digunakan oleh user lain'
-            });
-        }
 
         const user = await prisma.user.findUnique({
             where: { id: userId }
         });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+        if (data.user_name && data.user_name !== user.user_name) {
+            const existingUserName = await prisma.user.findUnique({
+                where: { user_name: data.user_name }
+            });
+            if (existingUserName) {
+                return res.status(400).json({
+                    message: 'Username sudah digunakan oleh user lain'
+                });
+            }
+        }
 
         let avatarPath = user.avatar;
 
@@ -92,6 +97,14 @@ const updateProfile = async (req, res) => {
 
             avatarPath = `/uploads/avatars/${req.file.filename}`;
         }
+
+        const updatedData = {}
+        if (data.full_name !== undefined) updatedData.full_name = data.full_name;
+        if (data.user_name !== undefined) updatedData.user_name = data.user_name;
+        if (data.phone_number !== undefined) updatedData.phone_number = data.phone_number;
+        if (data.basic_salary !== undefined) updatedData.basic_salary = data.basic_salary;
+        if (avatarPath !== undefined) updatedData.avatar = avatarPath;
+
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },

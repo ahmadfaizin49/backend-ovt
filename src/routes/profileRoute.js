@@ -9,5 +9,5 @@ const { uploadAvatar } = require('../helper/multer');
 router.get('/', authMiddleware, getProfile);
 
 //update profile route
-router.put('/update', authMiddleware, uploadAvatar.single('avatar'), updateProfile);
+router.patch('/update', authMiddleware, uploadAvatar.single('avatar'), updateProfile);
 module.exports = router;
