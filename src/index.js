@@ -5,6 +5,7 @@ const passwordRoute = require('./routes/passwordRoute');
 const ovtRoute = require('./routes/ovtRoute');
 const profileRoute = require('./routes/profileRoute');
 const dotenv = require('dotenv');
+const path = require('path');
 dotenv.config();
 
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use('/ovt', ovtRoute);
 //routes profile
 app.use('/profile', profileRoute);
 
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
 });
