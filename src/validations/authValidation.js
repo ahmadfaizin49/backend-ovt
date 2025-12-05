@@ -17,9 +17,6 @@ const loginSchema = z.object({
     password: z.string().min(6, 'Password minimal 6 karakter')
 })
 
-const refreshTokenSchema = z.object({
-    refresh_token: z.string().min(1, 'Refresh token wajib diisi')
-})
 
 const requestEmailChangeSchema = z.object({
     current_password: z.string()
@@ -39,7 +36,6 @@ const verifyEmailChangeSchema = z.object({
 module.exports = {
     registerSchema,
     loginSchema,
-    refreshTokenSchema,
     requestEmailChangeSchema,
     verifyEmailChangeSchema,
 }   

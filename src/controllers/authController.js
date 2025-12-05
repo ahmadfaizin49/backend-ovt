@@ -1,9 +1,8 @@
 const prisma = require('../helper/prisma');
 const { hashValue, compareValue } = require('../helper/hash');
-const { generateToken, generateRefreshToken } = require('../helper/jwt');
+const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../helper/jwt');
 const { registerSchema,
     loginSchema,
-    refreshTokenSchema,
     requestEmailChangeSchema,
     verifyEmailChangeSchema, } = require('../validations/authValidation');
 const jwt = require('jsonwebtoken');
@@ -22,31 +21,31 @@ const register = async (req, res) => {
             })
         }
 
-        const { full_name, user_name, email, phone_number, basic_salary, password } = parsed.data;
+        const data = parsed.data;
 
         const existingUser = await prisma.user.findFirst({
             where: {
                 OR: [
-                    { email },
-                    { user_name }
+                    { email: data.email },
+                    { user_name: data.user_name }
                 ]
             }
         })
         if (existingUser) {
             return res.status(400).json({
-                message: existingUser.email === email
+                message: existingUser.email === data.email
                     ? 'Email sudah terdaftar'
                     : 'Username sudah digunakan'
             });
         }
-        const hashed = await hashValue(password);
+        const hashed = await hashValue(data.password);
         const newUser = await prisma.user.create({
             data: {
-                full_name,
-                user_name,
-                email,
-                phone_number,
-                basic_salary,
+                full_name: data.full_name,
+                user_name: data.user_name,
+                email: data.email,
+                phone_number: data.phone_number,
+                basic_salary: data.basic_salary,
                 password: hashed
             }
         })
@@ -75,10 +74,10 @@ const login = async (req, res) => {
                 errors: parsed.error.issues.map((e) => e.message)
             })
         }
-        const { email, password } = parsed.data;
+        const data = parsed.data;
 
         const user = await prisma.user.findUnique({
-            where: { email }
+            where: { email: data.email }
         })
         if (!user) {
             return res.status(400).json({
@@ -86,7 +85,7 @@ const login = async (req, res) => {
             })
         }
 
-        const isPasswordValid = await compareValue(password, user.password);
+        const isPasswordValid = await compareValue(data.password, user.password);
         if (!isPasswordValid) {
             return res.status(400).json({
                 message: 'Email atau password salah'
@@ -133,45 +132,40 @@ const login = async (req, res) => {
 const refreshToken = async (req, res) => {
 
     try {
-        const parsed = refreshTokenSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(400).json({
-                message: 'Validasi gagal',
-                errors: parsed.error.issues.map((e) => e.message)
-            })
-        }
-        const { refresh_token } = parsed.data;
 
+        const { tokenExpired, userId } = req;
+        if (!tokenExpired) {
+            return res.status(400).json({
+                message: 'Token akses masih berlaku'
+            });
+        }
         const dbToken = await prisma.tokenAuth.findFirst({
             where: {
-                token: refresh_token,
+                user_id: userId,
                 token_type: TokenType.REFRESH,
                 expired_at: { gt: new Date() }
             },
-            include: {
-                user: true
-            }
+            include: { user: true }
         });
         if (!dbToken) {
             return res.status(401).json({
-                message: 'Refresh token not found or expired'
+                message: 'Refresh token tidak valid atau telah kedaluwarsa'
             });
         }
-        try {
-            jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET);
-        } catch (error) {
+        const { valid: refreshValid } = verifyRefreshToken(dbToken.token);
+        if (!refreshValid) {
             return res.status(401).json({
-                message: 'Invalid refresh token'
+                message: 'Refresh token tidak valid atau telah kedaluwarsa'
             });
         }
-
         const newAccessToken = generateToken({ id: dbToken.user.id });
 
-        return res.status(200).json({
-            message: 'Token refreshed successfully',
+        res.status(200).json({
+            message: 'Token akses berhasil diperbarui',
             access_token: newAccessToken,
-            refresh_token: refresh_token
+            refreshToken: dbToken.token
         });
+
     } catch (error) {
         res.status(500).json({
             message: 'Internal server error',
@@ -190,10 +184,10 @@ const changeEmail = async (req, res) => {
                 errors: parsed.error.issues.map((e) => e.message)
             })
         }
-        const { current_password, new_email } = parsed.data;
+        const data = parsed.data;
         const userId = req.user.id;
 
-        if (new_email === req.user.email) {
+        if (data.new_email === req.user.email) {
             return res.status(400).json({
                 message: 'Email baru tidak boleh sama dengan email saat ini'
             });
@@ -207,14 +201,14 @@ const changeEmail = async (req, res) => {
                 message: 'User tidak ditemukan'
             });
         }
-        const isPasswordValid = await compareValue(current_password, user.password);
+        const isPasswordValid = await compareValue(data.current_password, user.password);
         if (!isPasswordValid) {
             return res.status(400).json({
                 message: 'Password saat ini salah'
             });
         }
         const emailUsed = await prisma.user.findUnique({
-            where: { email: new_email }
+            where: { email: data.new_email }
         });
         if (emailUsed) {
             return res.status(400).json({
@@ -233,7 +227,7 @@ const changeEmail = async (req, res) => {
                 expired_at: expired
             }
         })
-        await sendOtpChangeEmailMail(new_email, otp);
+        await sendOtpChangeEmailMail(data.new_email, otp);
 
         return res.status(200).json({
             message: 'OTP untuk verifikasi perubahan email telah dikirim ke email baru'

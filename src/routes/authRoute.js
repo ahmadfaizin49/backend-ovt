@@ -7,6 +7,7 @@ const { register,
     verifyEmailChange,
 } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
+const refreshTokenMiddleware = require('../middleware/refreshTokenMiddleware');
 const { uploadAvatar } = require('../helper/multer');
 
 //register route
@@ -15,7 +16,7 @@ router.post('/register', register);
 router.post('/login', login);
 
 //refresh token route
-router.post('/refresh-token', refreshToken);
+router.post('/refresh-token', refreshTokenMiddleware, refreshToken);
 
 //change email route
 router.post('/change-email', authMiddleware, changeEmail);
