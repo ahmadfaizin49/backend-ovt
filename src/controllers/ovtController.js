@@ -5,7 +5,7 @@ const { ovtSchema,
     ovtUpdateSchema
 } = require('../validations/ovtValidations');
 const { calculateOvertimeAmount } = require('../helper/overtime');
-
+const { getWeekRange } = require('../helper/date');
 function normalizeDate(dateString) {
     const [year, month, day] = dateString.split('-').map(Number);
     return new Date(Date.UTC(year, month - 1, day));
@@ -189,10 +189,41 @@ const getReportMonthlyOvt = async (req, res) => {
 }
 const getReportWeeklyOvt = async (req, res) => {
     try {
+        const userId = req.user.id;
 
+        const result = await prisma.$queryRaw`
+        SELECT
+           SUM(hours) as overtime_hours,
+           SUM(total_amount) as total_overtime_amount
+           FROM overtime
+           WHERE user_id = ${userId}
+           AND YEARWEEK(date, 1) = YEARWEEK(CURRENT_DATE(), 1);`
+
+        const overtimeHour = result[0].overtime_hours ?? 0;
+        const total = result[0].total_overtime_amount ?? 0;
+
+        const weekNumber = getCurrentWeekNumber();
+        return res.status(200).json({
+            message: "ok",
+            data: {
+                week: weekNumber,
+                overtime_hours: Number(overtimeHour),
+                total_overtime_amount: Number(total)
+            }
+        })
     } catch (error) {
 
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
     }
+}
+function getCurrentWeekNumber() {
+    const today = new Date();
+    const oneJan = new Date(today.getFullYear(), 0, 1);
+    const numberOfDays = Math.floor((today - oneJan) / (24 * 60 * 60 * 1000));
+    return Math.ceil((today.getDay() + 1 + numberOfDays) / 7);
 }
 module.exports = {
     createOvt,
