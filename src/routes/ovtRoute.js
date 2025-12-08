@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { createOvt,
     updateOvt,
-    deleteOvt
+    deleteOvt,
+    getReportMonthlyOvt,
+    getReportWeeklyOvt
 } = require('../controllers/ovtController')
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -14,5 +16,11 @@ router.put('/update/:id', authMiddleware, updateOvt);
 
 //delete overtime route
 router.delete('/delete/:id', authMiddleware, deleteOvt);
+
+//get monthly overtime report route
+router.get('/report/monthly', authMiddleware, getReportMonthlyOvt);
+
+//get weekly overtime report route
+router.get('/report/weekly', authMiddleware, getReportWeeklyOvt);
 
 module.exports = router;

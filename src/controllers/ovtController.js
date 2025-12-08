@@ -153,8 +153,51 @@ const deleteOvt = async (req, res) => {
         })
     }
 }
+
+const getReportMonthlyOvt = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const data = await prisma.$queryRaw`
+        SELECT
+           SUM(hours) as overtime_hours,
+           SUM(total_amount) as total_overtime_amount
+           FROM overtime
+           WHERE user_id = ${userId}
+           AND MONTH(date) = MONTH(CURRENT_DATE())
+           AND YEAR(date) = YEAR(CURRENT_DATE());
+           `
+        const overtimeHour = data[0].overtime_hours ?? 0;
+        const total = data[0].total_overtime_amount ?? 0;
+
+        const monthName = new Date().toLocaleString('id-ID', { month: 'long' });
+        return res.status(200).json({
+            message: "ok",
+            data: {
+                month: monthName,
+                overtime_hours: Number(overtimeHour),
+                total_overtime_amount: Number(total)
+            }
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+
+    }
+}
+const getReportWeeklyOvt = async (req, res) => {
+    try {
+
+    } catch (error) {
+
+    }
+}
 module.exports = {
     createOvt,
     updateOvt,
-    deleteOvt
+    deleteOvt,
+    getReportMonthlyOvt,
+    getReportWeeklyOvt
 }
