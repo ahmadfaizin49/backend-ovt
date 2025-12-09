@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `user` ADD COLUMN `work_days` ENUM('SIX_DAYS', 'FIVE_DAYS') NOT NULL DEFAULT 'FIVE_DAYS';

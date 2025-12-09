@@ -15,6 +15,7 @@ const getProfile = async (req, res) => {
                 email: true,
                 phone_number: true,
                 basic_salary: true,
+                work_days: true,
                 avatar: true,
             }
         })
@@ -103,6 +104,7 @@ const updateProfile = async (req, res) => {
         if (data.user_name !== undefined) updatedData.user_name = data.user_name;
         if (data.phone_number !== undefined) updatedData.phone_number = data.phone_number;
         if (data.basic_salary !== undefined) updatedData.basic_salary = data.basic_salary;
+        if (data.work_days !== undefined) updatedData.work_days = data.work_days;
         if (avatarPath !== undefined) updatedData.avatar = avatarPath;
 
 
@@ -113,6 +115,7 @@ const updateProfile = async (req, res) => {
                 user_name: data.user_name,
                 phone_number: data.phone_number,
                 basic_salary: data.basic_salary,
+                work_days: data.work_days,
                 avatar: avatarPath
             }
         });

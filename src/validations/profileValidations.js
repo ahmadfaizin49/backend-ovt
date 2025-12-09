@@ -7,6 +7,7 @@ const updateProfileSchema = z.object({
     phone_number: z.string().min(10, 'Nomor HP minimal 10 karakter').optional(),
     basic_salary: z.coerce.number('Gaji pokok harus berupa angka')
         .nonnegative('Gaji pokok tidak boleh negatif').optional(),
+    work_days: z.enum(['FIVE_DAYS', 'SIX_DAYS']).optional(),
     avatar: z.string().optional()
 
 })

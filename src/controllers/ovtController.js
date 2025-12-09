@@ -37,10 +37,14 @@ const createOvt = async (req, res) => {
                 message: "Tanggal lembur sudah terdaftar. Tidak boleh duplikat."
             })
         }
+
+        const workDays = req.user.work_days === 'SIX_DAYS' ? 6 : 5;
+        data.working_days = workDays;
         const totalAmount = calculateOvertimeAmount(
             data.status,
             data.hours,
-            req.user.basic_salary
+            req.user.basic_salary,
+            workDays
         )
         const ovt = await prisma.overtime.create({
             data: {
