@@ -157,7 +157,7 @@ const deleteOvt = async (req, res) => {
 const getReportMonthlyOvt = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await prisma.$queryRaw`
+        const summary = await prisma.$queryRaw`
         SELECT
            SUM(hours) as overtime_hours,
            SUM(total_amount) as total_overtime_amount
@@ -166,8 +166,23 @@ const getReportMonthlyOvt = async (req, res) => {
            AND MONTH(date) = MONTH(CURRENT_DATE())
            AND YEAR(date) = YEAR(CURRENT_DATE());
            `
-        const overtimeHour = data[0].overtime_hours ?? 0;
-        const total = data[0].total_overtime_amount ?? 0;
+        const overtimeHour = summary[0].overtime_hours ?? 0;
+        const total = summary[0].total_overtime_amount ?? 0;
+
+        const data = await prisma.$queryRaw`
+        SELECT
+           id,
+           user_id,
+           date,
+           hours,
+           total_amount
+           FROM overtime
+           WHERE user_id = ${userId}
+           AND MONTH(date) = MONTH(CURRENT_DATE())
+           AND YEAR(date) = YEAR(CURRENT_DATE())
+           ORDER BY date ASC;
+           `
+
 
         const monthName = new Date().toLocaleString('id-ID', { month: 'long' });
         return res.status(200).json({
@@ -175,7 +190,9 @@ const getReportMonthlyOvt = async (req, res) => {
             data: {
                 month: monthName,
                 overtime_hours: Number(overtimeHour),
-                total_overtime_amount: Number(total)
+                total_overtime_amount: Number(total),
+                total_found: data.length,
+                records: data
             }
         })
 
@@ -191,25 +208,40 @@ const getReportWeeklyOvt = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const result = await prisma.$queryRaw`
-        SELECT
-           SUM(hours) as overtime_hours,
-           SUM(total_amount) as total_overtime_amount
-           FROM overtime
-           WHERE user_id = ${userId}
-           AND YEARWEEK(date, 1) = YEARWEEK(CURRENT_DATE(), 1);`
+        const rawData = await prisma.$queryRaw`
+         SELECT
+        DAYOFWEEK(date) AS dow,
+        SUM(hours) AS overtime_hours,
+        SUM(total_amount) AS total_overtime_amount
+         FROM overtime
+         WHERE user_id = ${userId}
+         AND WEEK(date, 1) = WEEK(CURRENT_DATE(), 1)
+         GROUP BY DAYOFWEEK(date)
+`;
+        console.log(rawData);
 
-        const overtimeHour = result[0].overtime_hours ?? 0;
-        const total = result[0].total_overtime_amount ?? 0;
-
-        const weekNumber = getCurrentWeekNumber();
+        const days = [
+            { dow: 2, name: 'Senin' },
+            { dow: 3, name: 'Selasa' },
+            { dow: 4, name: 'Rabu' },
+            { dow: 5, name: 'Kamis' },
+            { dow: 6, name: 'Jumat' },
+            { dow: 7, name: 'Sabtu' },
+            { dow: 1, name: 'Minggu' }
+        ];
+        const result = days.map(day => {
+            const found = rawData.find(r => Number(r.dow) === day.dow);
+            return {
+                day: day.name,
+                overtime_hours: found ? Number(found.overtime_hours) : 0,
+                total_overtime_amount: found ? Number(found.total_overtime_amount) : 0
+            }
+        })
+        const currentWeekNumber = getCurrentWeekNumber();
         return res.status(200).json({
             message: "ok",
-            data: {
-                week: weekNumber,
-                overtime_hours: Number(overtimeHour),
-                total_overtime_amount: Number(total)
-            }
+            week_number: currentWeekNumber,
+            data: result
         })
     } catch (error) {
 
@@ -225,10 +257,63 @@ function getCurrentWeekNumber() {
     const numberOfDays = Math.floor((today - oneJan) / (24 * 60 * 60 * 1000));
     return Math.ceil((today.getDay() + 1 + numberOfDays) / 7);
 }
+const getOvertimeDateRange = async (req, res) => {
+    try {
+        let { dateStart, dateEnd } = req.query;
+        const userId = req.user.id;
+        if (!dateStart || !dateEnd) {
+            return res.status(400).json({
+                message: "startDate and endDate are required"
+            })
+        }
+        const [d1, m1, y1] = dateStart.split("-");
+        const [d2, m2, y2] = dateEnd.split("-");
+
+        const startDate = `${y1}-${m1}-${d1}`;
+        const endDate = `${y2}-${m2}-${d2}`;
+
+        const data = await prisma.$queryRaw`
+        SELECT
+           id,
+           user_id,
+           date,
+           hours,
+           total_amount
+           FROM overtime
+           WHERE user_id = ${userId}
+           AND date BETWEEN ${startDate} AND ${endDate}
+           ORDER BY date ASC;
+           `
+        const total = await prisma.$queryRaw`
+        SELECT
+           SUM(hours) as total_overtime_hours,
+           SUM(total_amount) as total_overtime_amount
+           FROM overtime
+           WHERE user_id = ${userId}
+           AND date BETWEEN ${startDate} AND ${endDate};
+           `
+        return res.status(200).json({
+            message: "ok",
+            dateStart,
+            dateEnd,
+            total_overtime_hours: total[0].total_overtime_hours,
+            total_overtime_amount: total[0].total_overtime_amount,
+            total_found: data.length,
+            data
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
+}
 module.exports = {
     createOvt,
     updateOvt,
     deleteOvt,
     getReportMonthlyOvt,
-    getReportWeeklyOvt
+    getReportWeeklyOvt,
+    getOvertimeDateRange
 }

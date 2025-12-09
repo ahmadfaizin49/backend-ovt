@@ -4,7 +4,8 @@ const { createOvt,
     updateOvt,
     deleteOvt,
     getReportMonthlyOvt,
-    getReportWeeklyOvt
+    getReportWeeklyOvt,
+    getOvertimeDateRange
 } = require('../controllers/ovtController')
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -22,5 +23,8 @@ router.get('/report/monthly', authMiddleware, getReportMonthlyOvt);
 
 //get weekly overtime report route
 router.get('/report/weekly', authMiddleware, getReportWeeklyOvt);
+
+//get overtime in date range route
+router.get('/date-range', authMiddleware, getOvertimeDateRange);
 
 module.exports = router;
